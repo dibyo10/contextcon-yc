@@ -14,7 +14,6 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "server": "node src/server.js"
   },
-  
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dibyo10/Cold_Outreach_Agent.git"
@@ -31,6 +30,7 @@
     "@openai/agents": "^0.8.2",
     "axios": "^1.14.0",
     "bullmq": "^5.72.1",
+    "concurrently": "^9.2.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.0",
     "express": "^5.2.1",

@@ -10,6 +10,7 @@ export async function sendEmail({ to, subject, body }) {
         const { data, error } = await resend.emails.send({
             from: "Dibyo <send@dibyo.work>", // must be a verified sender in Resend
             to,
+            replyTo: "dibyo.dc@gmail.com",
             subject,
             text: body,
         });
