@@ -50,20 +50,55 @@ This design enables:
 ### 1. Intelligent Opportunity Discovery
 Finds companies aligned with a specific technical profile, focusing on meaningful fit rather than broad matching.
 
-### 2. Context-Aware Company Understanding
+### 2. Real People, Not Just Domains — Powered by Crustdata
+
+Most outreach tools stop at finding a company domain. This system goes further by identifying the actual humans worth reaching out to.
+
+Crustdata's People API is the backbone of the contact discovery layer. For each company the Discovery Agent finds, the system:
+
+- Queries Crustdata for decision-makers — founders, CTOs, VPs, and directors — using a title-aware regex filter that targets seniority, not just any employee
+- Runs a two-phase search: first a strict title-filtered query, then a broader fallback with client-side filtering if the first pass returns nothing
+- Normalises every profile returned — splitting names, extracting LinkedIn handles, and resolving current employment to confirm the person is actually still at the company
+- Filters aggressively: only people with a confirmed current role at the target company, a recognised senior title, and at least a name or LinkedIn URL move forward
+
+This means the pipeline never sends emails to the wrong person at the right company, or the right person who left six months ago. Crustdata makes the people layer reliable enough to build on.
+
+### 3. Context-Aware Company Understanding
 Builds a lightweight understanding of each company using multiple signals, even when data is incomplete or noisy.
 
-### 3. Strict Relevance Filtering
-Applies a decision layer that aggressively filters out weak matches, ensuring only high-probability opportunities move forward.
+### 4. Strict Relevance Filtering
+Applies a decision layer that aggressively filters out weak matches, ensuring only high-probability opportunities move forward. Most leads are rejected — that is by design.
 
-### 4. High-Signal Communication Generation
-Creates short, personalized messages that:
+### 5. High-Signal Communication Generation
+Creates short, personalised messages that:
 - Reflect real understanding of the company
 - Highlight relevant experience
 - Avoid generic templates or fluff
 
-### 5. Structured, Agent-Driven Pipeline
+### 6. Structured, Agent-Driven Pipeline
 Runs as a coordinated system of agents with clearly defined roles, enabling reliable execution and iterative improvement.
+
+---
+
+## 🔌 How Crustdata Fits Into the Pipeline
+
+```
+Discovery Agent
+      ↓
+  [New Companies]
+      ↓
+Crustdata People API  ←── finds founders, CTOs, VPs by title
+      ↓
+  Profile Normalisation  ←── confirms current employment, extracts LinkedIn
+      ↓
+Hunter.io Email Finder  ←── resolves verified email addresses
+      ↓
+  Research + Scoring + Email Drafting
+      ↓
+  Send via Resend
+```
+
+Without Crustdata, the pipeline would have domains but no people. It is what turns a list of companies into a list of humans worth talking to.
 
 ---
 
@@ -105,6 +140,7 @@ The long-term vision is to evolve this into a signal-driven, agentic outreach pl
 - Adapts messaging based on response patterns
 - Learns which signals actually lead to replies
 - Moves beyond cold outreach into intelligent opportunity matching
+- Uses richer Crustdata signals — funding rounds, headcount growth, recent hires — to time outreach when companies are most likely to be receptive
 
 ---
 
