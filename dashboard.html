@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cold Email Pipeline</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.12);
+    --text: #e8e8e8;
+    --muted: #666;
+    --dim: #444;
+    --accent: #00ff88;
+    --accent-dim: rgba(0,255,136,0.1);
+    --accent-border: rgba(0,255,136,0.25);
+    --warn: #ffaa00;
+    --warn-dim: rgba(255,170,0,0.1);
+    --error: #ff4455;
+    --blue: #4488ff;
+    --blue-dim: rgba(68,136,255,0.1);
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'IBM Plex Sans', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    gap: 16px;
+  }
+
+  .title-block {}
+  .title-block h1 {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-family: var(--mono);
+    margin-bottom: 6px;
+  }
+  .title-block h2 {
+    font-size: 22px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -0.02em;
+  }
+  .title-block h2 span { color: var(--accent); font-weight: 500; }
+
+  .run-btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: opacity 0.15s, transform 0.1s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .run-btn:hover { opacity: 0.85; }
+  .run-btn:active { transform: scale(0.97); }
+  .run-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .metrics-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .metric {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .metric-value {
+    font-size: 28px;
+    font-weight: 300;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    font-family: var(--mono);
+    transition: color 0.3s;
+  }
+  .metric-value.lit { color: var(--accent); }
+
+  .pipeline-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 16px;
+    align-items: start;
+  }
+
+  .steps-panel {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .steps-header {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--border);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .step-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-bottom: 0.5px solid var(--border);
+    transition: background 0.2s;
+    position: relative;
+  }
+  .step-row:last-child { border-bottom: none; }
+  .step-row.active { background: var(--accent-dim); }
+  .step-row.done { }
+  .step-row.error { background: rgba(255,68,85,0.05); }
+
+  .step-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--dim);
+    flex-shrink: 0;
+    transition: background 0.3s, box-shadow 0.3s;
+    position: relative;
+  }
+  .step-row.active .step-dot {
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-dim);
+    animation: pulse 1.2s ease-in-out infinite;
+  }
+  .step-row.done .step-dot { background: var(--accent); }
+  .step-row.error .step-dot { background: var(--error); }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px var(--accent-dim); }
+    50% { box-shadow: 0 0 0 6px rgba(0,255,136,0.05); }
+  }
+
+  .step-info { flex: 1; min-width: 0; }
+  .step-name {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .step-row.active .step-name { color: var(--accent); font-weight: 500; }
+  .step-sub {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .step-row.done .step-sub { color: var(--accent); opacity: 0.6; }
+
+  .step-time {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    flex-shrink: 0;
+  }
+  .step-row.done .step-time { color: var(--muted); }
+
+  .right-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .leads-panel {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-header-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .panel-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  .lead-card {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--border);
+    animation: slideIn 0.25s ease-out;
+  }
+  .lead-card:last-child { border-bottom: none; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .lead-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  .lead-domain {
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .score-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .score-high { background: var(--accent-dim); color: var(--accent); border: 0.5px solid var(--accent-border); }
+  .score-mid { background: var(--warn-dim); color: var(--warn); border: 0.5px solid rgba(255,170,0,0.25); }
+  .score-low { background: rgba(255,68,85,0.1); color: var(--error); border: 0.5px solid rgba(255,68,85,0.25); }
+
+  .lead-meta {
+    display: flex;
+    gap: 16px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .lead-meta span { display: flex; align-items: center; gap: 4px; }
+
+  .lead-subject {
+    font-size: 12px;
+    color: var(--blue);
+    font-style: italic;
+    opacity: 0.85;
+  }
+
+  .empty-state {
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.05em;
+  }
+
+  .log-panel {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .log-body {
+    padding: 12px 16px;
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.7;
+    max-height: 160px;
+    overflow-y: auto;
+  }
+
+  .log-line { display: flex; gap: 10px; }
+  .log-ts { color: var(--dim); flex-shrink: 0; }
+  .log-msg { color: var(--muted); }
+  .log-line.info .log-msg { color: var(--text); opacity: 0.7; }
+  .log-line.success .log-msg { color: var(--accent); }
+  .log-line.warn .log-msg { color: var(--warn); }
+  .log-line.error .log-msg { color: var(--error); }
+
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 0.5px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--dim);
+    flex-shrink: 0;
+  }
+  .status-dot.running { background: var(--accent); animation: pulse 1.2s infinite; }
+  .status-dot.done { background: var(--accent); animation: none; }
+  .status-dot.error { background: var(--error); animation: none; }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--dim); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title-block">
+    <h1>Outreach Ops</h1>
+    <h2>Cold Email <span>Pipeline</span></h2>
+  </div>
+  <button class="run-btn" id="runBtn" onclick="startPipeline()">▶ Run Pipeline</button>
+</div>
+
+<div class="metrics-row">
+  <div class="metric">
+    <div class="metric-label">Companies</div>
+    <div class="metric-value" id="m-companies">—</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">New Leads</div>
+    <div class="metric-value" id="m-leads">—</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Accepted</div>
+    <div class="metric-value" id="m-accepted">—</div>
+  </div>
+  <div class="metric">
+    <div class="metric-label">Sent</div>
+    <div class="metric-value" id="m-sent">—</div>
+  </div>
+</div>
+
+<div class="pipeline-grid">
+  <div class="steps-panel">
+    <div class="steps-header">Pipeline Steps</div>
+    <div id="steps-list">
+      <div class="step-row" data-step="DomainStep">
+        <div class="step-dot"></div>
+        <div class="step-info">
+          <div class="step-name">Domain Discovery</div>
+          <div class="step-sub">Finding target companies</div>
+        </div>
+        <div class="step-time">—</div>
+      </div>
+      <div class="step-row" data-step="FilterStep">
+        <div class="step-dot"></div>
+        <div class="step-info">
+          <div class="step-name">Dedup Filter</div>
+          <div class="step-sub">Checking MongoDB</div>
+        </div>
+        <div class="step-time">—</div>
+      </div>
+      <div class="step-row" data-step="ContactLookupStep">
+        <div class="step-dot"></div>
+        <div class="step-info">
+          <div class="step-name">Contact Lookup</div>
+          <div class="step-sub">Crustdata + Hunter.io</div>
+        </div>
+        <div class="step-time">—</div>
+      </div>
+      <div class="step-row" data-step="ResearchStep">
+        <div class="step-dot"></div>
+        <div class="step-info">
+          <div class="step-name">Company Research</div>
+          <div class="step-sub">AI agent analysis</div>
+        </div>
+        <div class="step-time">—</div>
+      </div>
+      <div class="step-row" data-step="ScoringStep">
+        <div class="step-dot"></div>
+        <div class="step-info">
+          <div class="step-name">Lead Scoring</div>
+          <div class="step-sub">Threshold ≥ 0.65</div>
+        </div>
+        <div class="step-time">—</div>
+      </div>
+      <div class="step-row" data-step="EmailStep">
+        <div class="step-dot"></div>
+        <div class="step-info">
+          <div class="step-name">Email Drafting</div>
+          <div class="step-sub">Personalised by AI</div>
+        </div>
+        <div class="step-time">—</div>
+      </div>
+      <div class="step-row" data-step="SendStep">
+        <div class="step-dot"></div>
+        <div class="step-info">
+          <div class="step-name">Send via Resend</div>
+          <div class="step-sub">HTTPS delivery</div>
+        </div>
+        <div class="step-time">—</div>
+      </div>
+    </div>
+    <div class="status-bar">
+      <div class="status-dot" id="statusDot"></div>
+      <span id="statusText">Ready</span>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="leads-panel">
+      <div class="panel-header">
+        <span class="panel-header-label">Leads</span>
+        <span class="panel-count" id="leads-count"></span>
+      </div>
+      <div id="leads-list">
+        <div class="empty-state">No leads yet — run the pipeline</div>
+      </div>
+    </div>
+
+    <div class="log-panel">
+      <div class="panel-header">
+        <span class="panel-header-label">Live Log</span>
+      </div>
+      <div class="log-body" id="log-body">
+        <div class="log-line"><span class="log-ts">--:--:--</span><span class="log-msg">Waiting for pipeline start...</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const BACKEND = 'http://localhost:3001';
+  let stepTimers = {};
+  let leadsData = {};
+  let metrics = { companies: 0, leads: 0, accepted: 0, sent: 0 };
+
+  function ts() {
+    return new Date().toLocaleTimeString('en-GB', { hour12: false });
+  }
+
+  function addLog(msg, type = 'info') {
+    const body = document.getElementById('log-body');
+    const line = document.createElement('div');
+    line.className = `log-line ${type}`;
+    line.innerHTML = `<span class="log-ts">${ts()}</span><span class="log-msg">${msg}</span>`;
+    body.appendChild(line);
+    body.scrollTop = body.scrollHeight;
+    if (body.children.length > 80) body.removeChild(body.firstChild);
+  }
+
+  function setStatus(state, text) {
+    const dot = document.getElementById('statusDot');
+    const label = document.getElementById('statusText');
+    dot.className = `status-dot ${state}`;
+    label.textContent = text;
+  }
+
+  function setMetric(key, val) {
+    const el = document.getElementById(`m-${key}`);
+    if (!el) return;
+    el.textContent = val;
+    el.classList.add('lit');
+    setTimeout(() => el.classList.remove('lit'), 600);
+  }
+
+  function setStepState(name, state, sub, timeMs) {
+    const row = document.querySelector(`[data-step="${name}"]`);
+    if (!row) return;
+    row.className = `step-row ${state}`;
+    if (sub) row.querySelector('.step-sub').textContent = sub;
+    if (timeMs !== undefined) {
+      row.querySelector('.step-time').textContent = timeMs < 1000
+        ? `${timeMs}ms`
+        : `${(timeMs / 1000).toFixed(1)}s`;
+    }
+  }
+
+  function upsertLead(lead) {
+    leadsData[lead.domain] = { ...(leadsData[lead.domain] || {}), ...lead };
+    renderLeads();
+  }
+
+  function renderLeads() {
+    const list = document.getElementById('leads-list');
+    const leads = Object.values(leadsData);
+    if (leads.length === 0) {
+      list.innerHTML = '<div class="empty-state">No leads yet — run the pipeline</div>';
+      document.getElementById('leads-count').textContent = '';
+      return;
+    }
+    document.getElementById('leads-count').textContent = `${leads.length} found`;
+    list.innerHTML = '';
+    leads.forEach(lead => {
+      const score = lead.score;
+      const scoreClass = score >= 0.75 ? 'score-high' : score >= 0.65 ? 'score-mid' : 'score-low';
+      const scoreLabel = score ? score.toFixed(2) : '—';
+      const emailCount = lead.emailsCount || '?';
+      const peopleCount = lead.peopleCount || '?';
+      const card = document.createElement('div');
+      card.className = 'lead-card';
+      card.innerHTML = `
+        <div class="lead-top">
+          <div class="lead-domain">${lead.domain}</div>
+          ${score ? `<span class="score-badge ${scoreClass}">${scoreLabel}</span>` : ''}
+        </div>
+        <div class="lead-meta">
+          <span>👤 ${peopleCount} people</span>
+          <span>✉ ${emailCount} emails</span>
+          ${lead.category ? `<span>🏷 ${lead.category}</span>` : ''}
+          ${lead.stage ? `<span>📍 ${lead.stage}</span>` : ''}
+        </div>
+        ${lead.subject ? `<div class="lead-subject">"${lead.subject}"</div>` : ''}
+      `;
+      list.appendChild(card);
+    });
+  }
+
+  function handleEvent(type, data) {
+    switch (type) {
+      case 'step_started':
+        stepTimers[data.step] = Date.now();
+        setStepState(data.step, 'active', null, undefined);
+        addLog(`→ ${data.step} started`, 'info');
+        setStatus('running', `Running ${data.step}...`);
+        break;
+
+      case 'step_completed': {
+        const ms = stepTimers[data.step] ? Date.now() - stepTimers[data.step] : undefined;
+        let sub = null;
+        if (data.step === 'DomainStep') {
+          sub = `${data.companiesCount} companies found`;
+          setMetric('companies', data.companiesCount);
+          metrics.companies = data.companiesCount;
+        }
+        if (data.step === 'FilterStep') {
+          sub = `${data.newCompaniesCount} new`;
+          setMetric('leads', data.newCompaniesCount);
+        }
+        if (data.step === 'ContactLookupStep') {
+          sub = `${data.leadsCount} leads with emails`;
+        }
+        if (data.step === 'ScoringStep') {
+          sub = `${data.accepted} accepted`;
+          setMetric('accepted', data.accepted);
+        }
+        if (data.step === 'SendStep') {
+          sub = `${data.sent} sent`;
+          setMetric('sent', data.sent);
+        }
+        setStepState(data.step, 'done', sub, ms);
+        addLog(`✓ ${data.step} done${ms ? ` in ${(ms/1000).toFixed(1)}s` : ''}`, 'success');
+        break;
+      }
+
+      case 'lead_found':
+        upsertLead({ domain: data.domain, emailsCount: data.emailsCount, peopleCount: data.peopleCount, status: data.status });
+        addLog(`Lead: ${data.domain} — ${data.emailsCount} emails`, 'info');
+        break;
+
+      case 'lead_scored':
+        upsertLead({ domain: data.domain, score: data.score, accepted: data.accepted });
+        addLog(`Score ${data.domain}: ${data.score} → ${data.accepted ? 'ACCEPT' : 'REJECT'}`, data.accepted ? 'success' : 'warn');
+        break;
+
+      case 'lead_researched':
+        upsertLead({ domain: data.domain, category: data.category, stage: data.stage });
+        break;
+
+      case 'email_drafted':
+        upsertLead({ domain: data.domain, subject: data.subject });
+        addLog(`Draft: "${data.subject}"`, 'info');
+        break;
+
+      case 'done':
+        setStatus('done', 'Pipeline complete');
+        addLog('Pipeline finished.', 'success');
+        document.getElementById('runBtn').disabled = false;
+        document.getElementById('runBtn').textContent = '▶ Run Again';
+        break;
+
+      case 'error':
+        setStatus('error', 'Error');
+        addLog(`Error: ${data.message}`, 'error');
+        document.getElementById('runBtn').disabled = false;
+        break;
+    }
+  }
+
+  function resetUI() {
+    leadsData = {};
+    metrics = { companies: 0, leads: 0, accepted: 0, sent: 0 };
+    ['companies','leads','accepted','sent'].forEach(k => {
+      const el = document.getElementById(`m-${k}`);
+      if (el) { el.textContent = '—'; el.classList.remove('lit'); }
+    });
+    ['DomainStep','FilterStep','ContactLookupStep','ResearchStep','ScoringStep','EmailStep','SendStep'].forEach(s => {
+      setStepState(s, '', null, undefined);
+      const row = document.querySelector(`[data-step="${s}"]`);
+      if (row) row.querySelector('.step-time').textContent = '—';
+    });
+    document.getElementById('log-body').innerHTML = '';
+    renderLeads();
+  }
+
+  function startPipeline() {
+    resetUI();
+    document.getElementById('runBtn').disabled = true;
+    document.getElementById('runBtn').textContent = '● Running...';
+    setStatus('running', 'Connecting...');
+    addLog('Starting pipeline...', 'info');
+
+    const es = new EventSource(`${BACKEND}/run`);
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        handleEvent('message', data);
+      } catch {}
+    };
+
+    const events = ['step_started','step_completed','lead_found','lead_scored','lead_researched','email_drafted','done','error'];
+    events.forEach(ev => {
+      es.addEventListener(ev, (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          handleEvent(ev, data);
+          if (ev === 'done' || ev === 'error') es.close();
+        } catch {}
+      });
+    });
+
+    es.onerror = () => {
+      addLog('Connection lost', 'error');
+      setStatus('error', 'Disconnected');
+      document.getElementById('runBtn').disabled = false;
+      document.getElementById('runBtn').textContent = '▶ Run Pipeline';
+      es.close();
+    };
+  }
+</script>
+</body>
+</html>
