@@ -1,0 +1,44 @@
+{
+  "name": "cold_email_agent",
+  "version": "1.0.0",
+  "description": "This project is an intelligent, agent-driven outreach engine designed to identify high-quality opportunities and generate targeted communication with strong contextual relevance. Instead of automating volume, it focuses on precision, ensuring that every interaction is intentional, relevant, and worth a response.",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "worker:crustdata": "node src/workers/crustdataWorker.js",
+    "worker:hunter": "node src/workers/hunterWorker.js",
+    "workers": "node src/workers/crustdataWorker.js & node src/workers/hunterWorker.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "node src/server.js"
+  },
+  
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dibyo10/Cold_Outreach_Agent.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/dibyo10/Cold_Outreach_Agent/issues"
+  },
+  "homepage": "https://github.com/dibyo10/Cold_Outreach_Agent#readme",
+  "dependencies": {
+    "@openai/agents": "^0.8.2",
+    "axios": "^1.14.0",
+    "bullmq": "^5.72.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.0",
+    "express": "^5.2.1",
+    "ioredis": "^5.10.1",
+    "mongoose": "^9.4.1",
+    "nodemailer": "^8.0.4",
+    "openai": "^6.33.0",
+    "resend": "^6.12.0",
+    "zod": "^4.3.6"
+  }
+}
