@@ -19,7 +19,7 @@ const WebSearchTool = tool({
     execute: async function ({ searchQuery }) {
 
         const response = await getClient().responses.create({
-            model: "gpt-4.1",
+            model: "gpt-5.2",
             tools: [
                 { type: "web_search" },
             ],
